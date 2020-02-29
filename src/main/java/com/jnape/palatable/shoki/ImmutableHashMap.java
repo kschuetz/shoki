@@ -117,7 +117,7 @@ public final class ImmutableHashMap<K, V> implements Map<Integer, K, V> {
     @Override
     public String toString() {
         return "ImmutableHashMap["
-                + join("|", map(into((k, v) -> format("(%s=%s)", k, v)), this))
+                + join(", ", map(into((k, v) -> format("(%s=%s)", k, v)), this))
                 + "]";
     }
 

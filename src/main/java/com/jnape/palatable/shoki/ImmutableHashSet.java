@@ -24,8 +24,14 @@ public final class ImmutableHashSet<A> implements Set<Integer, A> {
         this.table = table;
     }
 
+    @Override
     public ImmutableHashSet<A> add(A a) {
         return new ImmutableHashSet<>(table.put(a, UNIT));
+    }
+
+    @Override
+    public ImmutableHashSet<A> remove(A a) {
+        return new ImmutableHashSet<>(table.remove(a));
     }
 
     @Override

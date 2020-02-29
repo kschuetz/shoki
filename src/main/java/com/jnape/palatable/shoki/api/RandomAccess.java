@@ -2,8 +2,6 @@ package com.jnape.palatable.shoki.api;
 
 import com.jnape.palatable.lambda.adt.Maybe;
 
-import static com.jnape.palatable.lambda.functions.builtin.fn1.Constantly.constantly;
-
 /**
  * An interface offering a mechanism for looking up {@link Maybe} a value of type <code>A</code> for an index of type
  * <code>Index</code>. Generally, to implement this interface is to suggest that {@link RandomAccess#get(Object) get}
@@ -26,13 +24,5 @@ public interface RandomAccess<Index, A> extends Membership<Index> {
      * @param index the index
      * @return {@link Maybe} the value
      */
-    Maybe<A> get(Index index);
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    default boolean contains(Index index) {
-        return get(index).match(constantly(false), constantly(true));
-    }
+    A get(Index index);
 }
