@@ -19,13 +19,13 @@ public interface Collection<Size extends Number, A> extends Sequence<A>, Sizable
     Known<Size> sizeInfo();
 
     /**
-     * @inheritDoc
+     *
      */
     @Override
     Collection<Size, A> tail();
 
     /**
-     * @inheritDoc
+     *
      */
     @Override
     default boolean isEmpty() {

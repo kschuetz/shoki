@@ -11,19 +11,19 @@ import com.jnape.palatable.lambda.adt.Maybe;
 public interface Deque<Size extends Number, A> extends Queue<Size, A>, Stack<Size, A> {
 
     /**
-     * @inheritDoc
+     *
      */
     @Override
     Deque<Size, A> cons(A a);
 
     /**
-     * @inheritDoc
+     *
      */
     @Override
     Deque<Size, A> snoc(A a);
 
     /**
-     * @inheritDoc
+     *
      */
     @Override
     Deque<Size, A> tail();
@@ -44,7 +44,7 @@ public interface Deque<Size extends Number, A> extends Queue<Size, A>, Stack<Siz
     Deque<Size, A> init();
 
     /**
-     * @inheritDoc
+     *
      */
     @Override
     Deque<Size, A> reverse();

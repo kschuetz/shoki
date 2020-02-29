@@ -44,10 +44,10 @@ public final class Bitmap32 {
 
     public Bitmap32 lowerBits(int index) {
         return index <= 0
-            ? empty()
-            : index >= 32
-            ? this
-            : bitmap32(bits & (-1 >>> 32 - index));
+               ? empty()
+               : index >= 32
+                 ? this
+                 : bitmap32(bits & (-1 >>> 32 - index));
     }
 
     public Bit lsb() {
@@ -100,11 +100,11 @@ public final class Bitmap32 {
             return nothing();
 
         return just(bitmap32(foldLeft((maskWithIndex, bitAtIndex) -> maskWithIndex
-                                          .into((mask, index) -> tuple(mask | (bitAtIndex.ordinal() << index),
-                                                                       index - 1)),
+                                              .into((mask, index) -> tuple(mask | (bitAtIndex.ordinal() << index),
+                                                                           index - 1)),
                                       tuple(0, bits.length - 1),
                                       asList(bits))
-                                 ._1()));
+                                     ._1()));
     }
 
     public static Bitmap32 empty() {

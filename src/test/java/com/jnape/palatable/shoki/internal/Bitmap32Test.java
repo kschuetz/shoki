@@ -1,6 +1,5 @@
 package com.jnape.palatable.shoki.internal;
 
-import com.jnape.palatable.shoki.internal.Bitmap32;
 import org.junit.Test;
 
 import static com.jnape.palatable.lambda.adt.Maybe.just;
@@ -11,7 +10,9 @@ import static com.jnape.palatable.shoki.internal.Bitmap32.bitmap32;
 import static com.jnape.palatable.shoki.internal.Bitmap32.empty;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Integer.MIN_VALUE;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class Bitmap32Test {
 

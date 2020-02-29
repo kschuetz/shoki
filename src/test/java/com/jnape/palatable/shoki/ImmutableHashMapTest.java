@@ -11,7 +11,12 @@ import static com.jnape.palatable.lambda.adt.hlist.HList.tuple;
 import static com.jnape.palatable.shoki.ImmutableHashMap.empty;
 import static com.jnape.palatable.shoki.SizeInfo.known;
 import static com.jnape.palatable.shoki.api.EquivalenceRelation.objectEquals;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static testsupport.matchers.IterableMatcher.isEmpty;
 import static testsupport.matchers.IterableMatcher.iterates;
 
@@ -30,9 +35,9 @@ public class ImmutableHashMapTest {
     @Test
     public void putReplacementKey() {
         assertEquals(just(false), ImmutableHashMap.<Integer, Boolean>empty()
-            .put(0, true)
-            .put(0, false)
-            .get(0));
+                .put(0, true)
+                .put(0, false)
+                .get(0));
     }
 
     @Test
@@ -45,17 +50,17 @@ public class ImmutableHashMapTest {
     @Test
     public void keysWithPartialHashCollisionPropagateDownwards() {
         ImmutableHashMap<String, Integer> nested = ImmutableHashMap.<String, Integer>empty(
-            objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
-                .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
-                .stub("bar", 0b00_00000_00000_00000_00000_00001_00000)
-                .stub("baz", 0b00_00000_00000_00000_00001_00001_00000)
-                .stub("qux", 0b00_00000_00000_00000_00001_00000_00000)
-                .stub("zux", 0b01_00000_00000_00000_00001_00000_00000))
-            .put("foo", 1)
-            .put("bar", 2)
-            .put("baz", 3)
-            .put("qux", 4)
-            .put("zux", 5);
+                objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
+                        .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
+                        .stub("bar", 0b00_00000_00000_00000_00000_00001_00000)
+                        .stub("baz", 0b00_00000_00000_00000_00001_00001_00000)
+                        .stub("qux", 0b00_00000_00000_00000_00001_00000_00000)
+                        .stub("zux", 0b01_00000_00000_00000_00001_00000_00000))
+                .put("foo", 1)
+                .put("bar", 2)
+                .put("baz", 3)
+                .put("qux", 4)
+                .put("zux", 5);
 
         assertEquals(just(1), nested.get("foo"));
         assertEquals(just(2), nested.get("bar"));
@@ -67,11 +72,11 @@ public class ImmutableHashMapTest {
     @Test
     public void keysWithFullCollisionsAreStoredAdjacently() {
         ImmutableHashMap<String, Integer> collision = ImmutableHashMap.<String, Integer>empty(
-            objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
-                .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
-                .stub("bar", 0b00_00000_00000_00000_00000_00000_00000))
-            .put("foo", 0)
-            .put("bar", 1);
+                objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
+                        .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
+                        .stub("bar", 0b00_00000_00000_00000_00000_00000_00000))
+                .put("foo", 0)
+                .put("bar", 1);
 
         assertEquals(just(0), collision.get("foo"));
         assertEquals(just(1), collision.get("bar"));
@@ -80,12 +85,12 @@ public class ImmutableHashMapTest {
     @Test
     public void overridingAsPartOfCollision() {
         ImmutableHashMap<String, Integer> collision = ImmutableHashMap.<String, Integer>empty(
-            objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
-                .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
-                .stub("bar", 0b00_00000_00000_00000_00000_00000_00000))
-            .put("foo", 0)
-            .put("bar", 1)
-            .put("bar", 2);
+                objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
+                        .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
+                        .stub("bar", 0b00_00000_00000_00000_00000_00000_00000))
+                .put("foo", 0)
+                .put("bar", 1)
+                .put("bar", 2);
 
         assertEquals(just(0), collision.get("foo"));
         assertEquals(just(2), collision.get("bar"));
@@ -108,12 +113,12 @@ public class ImmutableHashMapTest {
     @Test
     public void removeNested() {
         ImmutableHashMap<String, Integer> nested = ImmutableHashMap.<String, Integer>empty(
-            objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
-                .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
-                .stub("bar", 0b00_00000_00000_00000_00000_00001_00000))
-            .put("foo", 0)
-            .put("bar", 1)
-            .remove("foo");
+                objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
+                        .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
+                        .stub("bar", 0b00_00000_00000_00000_00000_00001_00000))
+                .put("foo", 0)
+                .put("bar", 1)
+                .remove("foo");
         assertEquals(just(1), nested.get("bar"));
         assertEquals(nothing(), nested.get("foo"));
     }
@@ -121,12 +126,12 @@ public class ImmutableHashMapTest {
     @Test
     public void removeFromCollision() {
         ImmutableHashMap<String, Integer> collision = ImmutableHashMap.<String, Integer>empty(
-            objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
-                .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
-                .stub("bar", 0b00_00000_00000_00000_00000_00000_00000))
-            .put("foo", 0)
-            .put("bar", 1)
-            .remove("foo");
+                objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
+                        .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
+                        .stub("bar", 0b00_00000_00000_00000_00000_00000_00000))
+                .put("foo", 0)
+                .put("bar", 1)
+                .remove("foo");
 
         assertEquals(nothing(), collision.get("foo"));
         assertEquals(just(1), collision.get("bar"));
@@ -135,7 +140,7 @@ public class ImmutableHashMapTest {
     @Test
     public void buildingFromJavaMap() {
         ImmutableHashMap<Integer, Boolean> immutableHashMap = ImmutableHashMap.fromJavaMap(new HashMap<Integer,
-            Boolean>() {{
+                Boolean>() {{
             put(0, true);
             put(1, false);
             put(2, true);
@@ -152,14 +157,14 @@ public class ImmutableHashMapTest {
         assertEquals(known(0), empty().sizeInfo());
         assertEquals(known(1), ImmutableHashMap.empty().put(1, 1).sizeInfo());
         ImmutableHashMap<Integer, Boolean> collisionsAndNesting =
-            ImmutableHashMap.<Integer, Boolean>empty(objectEquals(),
-                                                     StubbedHashingAlgorithm.<Integer>stubbedHashingAlgorithm()
-                                                         .stub(0, 0b00_00000_00000_00000_00000_00000_00000)
-                                                         .stub(1, 0b00_00000_00000_00000_00000_00001_00000)
-                                                         .stub(2, 0b00_00000_00000_00000_00000_00001_00000))
-                .put(0, true)
-                .put(1, false)
-                .put(2, true);
+                ImmutableHashMap.<Integer, Boolean>empty(objectEquals(),
+                                                         StubbedHashingAlgorithm.<Integer>stubbedHashingAlgorithm()
+                                                                 .stub(0, 0b00_00000_00000_00000_00000_00000_00000)
+                                                                 .stub(1, 0b00_00000_00000_00000_00000_00001_00000)
+                                                                 .stub(2, 0b00_00000_00000_00000_00000_00001_00000))
+                        .put(0, true)
+                        .put(1, false)
+                        .put(2, true);
         assertEquals(known(3), collisionsAndNesting.sizeInfo());
         assertEquals(known(0), empty().put(1, 1).remove(1).sizeInfo());
     }
@@ -178,13 +183,13 @@ public class ImmutableHashMapTest {
         assertEquals("ImmutableHashMap[(foo=foo value)|(baz=baz value)|(bar=bar value)]",
                      empty(objectEquals(),
                            StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
-                               .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
-                               .stub("bar", 0b00_00000_00000_00000_00000_00001_00000)
-                               .stub("baz", 0b00_00000_00000_00000_00000_00001_00000))
-                         .put("foo", "foo value")
-                         .put("bar", "bar value")
-                         .put("baz", "baz value")
-                         .toString());
+                                   .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
+                                   .stub("bar", 0b00_00000_00000_00000_00000_00001_00000)
+                                   .stub("baz", 0b00_00000_00000_00000_00000_00001_00000))
+                             .put("foo", "foo value")
+                             .put("bar", "bar value")
+                             .put("baz", "baz value")
+                             .toString());
     }
 
     @Test
@@ -193,12 +198,12 @@ public class ImmutableHashMapTest {
         assertThat(empty().put(0, true), iterates(tuple(0, true)));
         assertThat(empty(objectEquals(),
                          StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
-                             .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
-                             .stub("bar", 0b00_00000_00000_00000_00000_00001_00000)
-                             .stub("baz", 0b00_00000_00000_00000_00000_00001_00000))
-                       .put("foo", 1)
-                       .put("bar", 2)
-                       .put("baz", 3),
+                                 .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
+                                 .stub("bar", 0b00_00000_00000_00000_00000_00001_00000)
+                                 .stub("baz", 0b00_00000_00000_00000_00000_00001_00000))
+                           .put("foo", 1)
+                           .put("bar", 2)
+                           .put("baz", 3),
                    iterates(tuple("foo", 1), tuple("baz", 3), tuple("bar", 2)));
     }
 
@@ -216,9 +221,9 @@ public class ImmutableHashMapTest {
         assertTrue(empty().put("foo", 1).tail().isEmpty());
 
         ImmutableHashMap<Integer, Boolean> tail = ImmutableHashMap.<Integer, Boolean>empty()
-            .put(0, true)
-            .put(32, false)
-            .tail();
+                .put(0, true)
+                .put(32, false)
+                .tail();
         assertEquals(nothing(), tail.get(0));
         assertEquals(just(false), tail.get(32));
     }
@@ -230,48 +235,48 @@ public class ImmutableHashMapTest {
         assertTrue(empty().put(1, 1).put(2, 2).remove(2).sameEntries(empty().put(1, 1)));
 
         assertTrue(ImmutableHashMap.<Integer, Boolean>empty()
-                       .put(1, true)
-                       .put(2, false)
-                       .sameEntries(ImmutableHashMap.<Integer, Boolean>empty()
-                                        .put(1, true)
-                                        .put(2, true),
-                                    (v1, v2) -> true));
+                           .put(1, true)
+                           .put(2, false)
+                           .sameEntries(ImmutableHashMap.<Integer, Boolean>empty()
+                                                .put(1, true)
+                                                .put(2, true),
+                                        (v1, v2) -> true));
 
         assertTrue(ImmutableHashMap.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2, k -> k.hashCode() % 2)
-                       .put(1, true)
-                       .put(2, false)
-                       .put(3, false)
-                       .put(4, true).sameEntries(ImmutableHashMap.<Integer, Boolean>empty()
-                                                     .put(3, false)
-                                                     .put(4, true)));
+                           .put(1, true)
+                           .put(2, false)
+                           .put(3, false)
+                           .put(4, true).sameEntries(ImmutableHashMap.<Integer, Boolean>empty()
+                                                             .put(3, false)
+                                                             .put(4, true)));
 
         assertTrue(ImmutableHashMap.<Integer, Boolean>empty()
-                       .put(3, false)
-                       .put(4, true).sameEntries(ImmutableHashMap.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2,
-                                                                                          k -> k.hashCode() % 2)
-                                                     .put(1, true)
-                                                     .put(2, false)
-                                                     .put(3, false)
-                                                     .put(4, true)));
+                           .put(3, false)
+                           .put(4, true).sameEntries(ImmutableHashMap.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2,
+                                                                                              k -> k.hashCode() % 2)
+                                                             .put(1, true)
+                                                             .put(2, false)
+                                                             .put(3, false)
+                                                             .put(4, true)));
 
         assertFalse(ImmutableHashMap.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2, k -> k.hashCode() % 2)
-                        .put(4, true)
-                        .put(3, false)
-                        .put(2, false)
-                        .put(1, true)
-                        .sameEntries(ImmutableHashMap.<Integer, Boolean>empty()
-                                         .put(3, false)
-                                         .put(4, true)));
+                            .put(4, true)
+                            .put(3, false)
+                            .put(2, false)
+                            .put(1, true)
+                            .sameEntries(ImmutableHashMap.<Integer, Boolean>empty()
+                                                 .put(3, false)
+                                                 .put(4, true)));
 
         assertFalse(ImmutableHashMap.<Integer, Boolean>empty()
-                        .put(3, false)
-                        .put(4, true)
-                        .sameEntries(ImmutableHashMap.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2,
-                                                                              k -> k.hashCode() % 2)
-                                         .put(4, true)
-                                         .put(3, false)
-                                         .put(2, false)
-                                         .put(1, true)));
+                            .put(3, false)
+                            .put(4, true)
+                            .sameEntries(ImmutableHashMap.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2,
+                                                                                  k -> k.hashCode() % 2)
+                                                 .put(4, true)
+                                                 .put(3, false)
+                                                 .put(2, false)
+                                                 .put(1, true)));
     }
 
     @Test
@@ -285,13 +290,13 @@ public class ImmutableHashMapTest {
         assertNotEquals(empty().put(1, 1), empty().put(2, 1));
 
         assertEquals(ImmutableHashMap.<Integer, Boolean>empty()
-                         .put(0, true)
-                         .put(32, false),
+                             .put(0, true)
+                             .put(32, false),
                      ImmutableHashMap.<Integer, Boolean>empty()
-                         .put(0, true)
-                         .put(32, false)
-                         .put(64, true)
-                         .remove(64));
+                             .put(0, true)
+                             .put(32, false)
+                             .put(64, true)
+                             .remove(64));
     }
 
     @Test

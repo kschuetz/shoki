@@ -71,7 +71,7 @@ public final class ImmutableHashSet<A> implements Set<Integer, A> {
     @Override
     public boolean equals(Object obj) {
         return obj instanceof ImmutableHashSet<?> &&
-            ((ImmutableHashSet<?>) obj).table.equals(table);
+                ((ImmutableHashSet<?>) obj).table.equals(table);
     }
 
     @Override
@@ -82,7 +82,7 @@ public final class ImmutableHashSet<A> implements Set<Integer, A> {
     @Override
     public String toString() {
         return "ImmutableHashSet[" +
-            String.join(", ", map(into((e, __) -> e.toString()), table)) +
-            ']';
+                String.join(", ", map(into((e, __) -> e.toString()), table)) +
+                ']';
     }
 }

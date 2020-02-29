@@ -4,8 +4,12 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static com.jnape.palatable.shoki.internal.Arrays.*;
-import static org.junit.Assert.*;
+import static com.jnape.palatable.shoki.internal.Arrays.deleteAt;
+import static com.jnape.palatable.shoki.internal.Arrays.insertAt;
+import static com.jnape.palatable.shoki.internal.Arrays.overrideAt;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class ArraysTest {
 
