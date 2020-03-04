@@ -13,4 +13,10 @@ public interface Map<Size extends Number, K, V> extends Collection<Size, Tuple2<
 
     @Override
     Map<Size, K, V> tail();
+
+    public static void main(String[] args) {
+
+        Map<Integer, String, Boolean> map = null;
+        map.keys();
+    }
 }

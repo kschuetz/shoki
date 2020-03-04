@@ -6,6 +6,9 @@ import com.jnape.palatable.shoki.api.Bag;
 import com.jnape.palatable.shoki.api.Collection;
 import com.jnape.palatable.shoki.api.EquivalenceRelation;
 import com.jnape.palatable.shoki.api.HashingAlgorithm;
+import com.jnape.palatable.shoki.api.Map;
+import com.jnape.palatable.shoki.api.views.MapView;
+import com.jnape.palatable.shoki.api.views.SetView;
 
 import static com.jnape.palatable.lambda.functions.builtin.fn1.Constantly.constantly;
 import static com.jnape.palatable.lambda.functions.builtin.fn2.Eq.eq;
@@ -16,7 +19,7 @@ import static com.jnape.palatable.lambda.functions.builtin.fn4.IfThenElse.ifThen
 import static com.jnape.palatable.shoki.api.EquivalenceRelation.objectEquals;
 import static com.jnape.palatable.shoki.api.HashingAlgorithm.objectHashCode;
 
-public final class ImmutableHashBag<A> implements Bag<Integer, A> {
+public final class ImmutableHashBag<A> implements Bag<Integer, A>, SetView<Integer, A>, MapView<Integer, A, Integer> {
 
     private static final ImmutableHashBag<?> DEFAULT_EMPTY = new ImmutableHashBag<>(ImmutableHashMap.empty());
 

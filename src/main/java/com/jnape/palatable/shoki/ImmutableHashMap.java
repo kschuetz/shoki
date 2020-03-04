@@ -68,6 +68,10 @@ public final class ImmutableHashMap<K, V> implements Map<Integer, K, V> {
         return putForHashAndLevel(new Entry<>(key, value), bitmap32(keyHashingAlgorithm.apply(key)), 1);
     }
 
+    public ImmutableHashMap<K, V> diff(Map<Integer, K, V> other) {
+        return this;
+    }
+
     public ImmutableHashMap<K, V> merge(Map<Integer, K, V> other, Semigroup<V> semigroup) {
         Integer thisSize  = sizeInfo().getSize();
         Integer otherSize = other.sizeInfo().getSize();
