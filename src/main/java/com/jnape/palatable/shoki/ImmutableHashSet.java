@@ -16,11 +16,11 @@ import static java.util.Arrays.asList;
 
 public final class ImmutableHashSet<A> implements Set<Integer, A> {
 
-    private static final ImmutableHashSet<?> DEFAULT_EMPTY = new ImmutableHashSet<>(ImmutableHashMap.empty());
+    private static final ImmutableHashSet<?> DEFAULT_EMPTY = new ImmutableHashSet<>(HashArrayMapTrie.empty());
 
-    private final ImmutableHashMap<A, Unit> table;
+    private final HashArrayMapTrie<A, Unit> table;
 
-    private ImmutableHashSet(ImmutableHashMap<A, Unit> table) {
+    private ImmutableHashSet(HashArrayMapTrie<A, Unit> table) {
         this.table = table;
     }
 
@@ -61,7 +61,7 @@ public final class ImmutableHashSet<A> implements Set<Integer, A> {
 
     public static <A> ImmutableHashSet<A> empty(EquivalenceRelation<A> equivalenceRelation,
                                                 HashingAlgorithm<A> hashingAlgorithm) {
-        return new ImmutableHashSet<>(ImmutableHashMap.empty(equivalenceRelation, hashingAlgorithm));
+        return new ImmutableHashSet<>(HashArrayMapTrie.empty(equivalenceRelation, hashingAlgorithm));
     }
 
     @SuppressWarnings("unchecked")

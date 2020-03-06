@@ -8,7 +8,7 @@ import java.util.HashMap;
 import static com.jnape.palatable.lambda.adt.Maybe.just;
 import static com.jnape.palatable.lambda.adt.Maybe.nothing;
 import static com.jnape.palatable.lambda.adt.hlist.HList.tuple;
-import static com.jnape.palatable.shoki.ImmutableHashMap.empty;
+import static com.jnape.palatable.shoki.HashArrayMapTrie.empty;
 import static com.jnape.palatable.shoki.SizeInfo.known;
 import static com.jnape.palatable.shoki.api.EquivalenceRelation.objectEquals;
 import static org.junit.Assert.assertEquals;
@@ -20,21 +20,21 @@ import static org.junit.Assert.assertTrue;
 import static testsupport.matchers.IterableMatcher.isEmpty;
 import static testsupport.matchers.IterableMatcher.iterates;
 
-public class ImmutableHashMapTest {
+public class HashArrayMapTrieTest {
 
     @Test
     public void getMissingKey() {
-        assertEquals(nothing(), ImmutableHashMap.<Integer, Boolean>empty().get(0));
+        assertEquals(nothing(), HashArrayMapTrie.<Integer, Boolean>empty().get(0));
     }
 
     @Test
     public void getPresentKey() {
-        assertEquals(just(true), ImmutableHashMap.<Integer, Boolean>empty().put(0, true).get(0));
+        assertEquals(just(true), HashArrayMapTrie.<Integer, Boolean>empty().put(0, true).get(0));
     }
 
     @Test
     public void putReplacementKey() {
-        assertEquals(just(false), ImmutableHashMap.<Integer, Boolean>empty()
+        assertEquals(just(false), HashArrayMapTrie.<Integer, Boolean>empty()
                 .put(0, true)
                 .put(0, false)
                 .get(0));
@@ -42,14 +42,14 @@ public class ImmutableHashMapTest {
 
     @Test
     public void immutability() {
-        ImmutableHashMap<Integer, Boolean> empty = empty();
+        HashArrayMapTrie<Integer, Boolean> empty = empty();
         assertNotSame(empty, empty.put(0, true));
         assertEquals(nothing(), empty.get(0));
     }
 
     @Test
     public void keysWithPartialHashCollisionPropagateDownwards() {
-        ImmutableHashMap<String, Integer> nested = ImmutableHashMap.<String, Integer>empty(
+        HashArrayMapTrie<String, Integer> nested = HashArrayMapTrie.<String, Integer>empty(
                 objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
                         .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
                         .stub("bar", 0b00_00000_00000_00000_00000_00001_00000)
@@ -71,7 +71,7 @@ public class ImmutableHashMapTest {
 
     @Test
     public void keysWithFullCollisionsAreStoredAdjacently() {
-        ImmutableHashMap<String, Integer> collision = ImmutableHashMap.<String, Integer>empty(
+        HashArrayMapTrie<String, Integer> collision = HashArrayMapTrie.<String, Integer>empty(
                 objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
                         .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
                         .stub("bar", 0b00_00000_00000_00000_00000_00000_00000))
@@ -84,7 +84,7 @@ public class ImmutableHashMapTest {
 
     @Test
     public void overridingAsPartOfCollision() {
-        ImmutableHashMap<String, Integer> collision = ImmutableHashMap.<String, Integer>empty(
+        HashArrayMapTrie<String, Integer> collision = HashArrayMapTrie.<String, Integer>empty(
                 objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
                         .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
                         .stub("bar", 0b00_00000_00000_00000_00000_00000_00000))
@@ -98,21 +98,21 @@ public class ImmutableHashMapTest {
 
     @Test
     public void contains() {
-        ImmutableHashMap<Integer, String> empty = empty();
+        HashArrayMapTrie<Integer, String> empty = empty();
         assertFalse(empty.contains(0));
         assertTrue(empty.put(0, "foo").contains(0));
     }
 
     @Test
     public void remove() {
-        ImmutableHashMap<Integer, Boolean> empty = empty();
+        HashArrayMapTrie<Integer, Boolean> empty = empty();
         assertEquals(empty, empty.remove(0));
         assertEquals(nothing(), empty.put(0, true).remove(0).get(0));
     }
 
     @Test
     public void removeNested() {
-        ImmutableHashMap<String, Integer> nested = ImmutableHashMap.<String, Integer>empty(
+        HashArrayMapTrie<String, Integer> nested = HashArrayMapTrie.<String, Integer>empty(
                 objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
                         .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
                         .stub("bar", 0b00_00000_00000_00000_00000_00001_00000))
@@ -125,7 +125,7 @@ public class ImmutableHashMapTest {
 
     @Test
     public void removeFromCollision() {
-        ImmutableHashMap<String, Integer> collision = ImmutableHashMap.<String, Integer>empty(
+        HashArrayMapTrie<String, Integer> collision = HashArrayMapTrie.<String, Integer>empty(
                 objectEquals(), StubbedHashingAlgorithm.<String>stubbedHashingAlgorithm()
                         .stub("foo", 0b00_00000_00000_00000_00000_00000_00000)
                         .stub("bar", 0b00_00000_00000_00000_00000_00000_00000))
@@ -139,25 +139,25 @@ public class ImmutableHashMapTest {
 
     @Test
     public void buildingFromJavaMap() {
-        ImmutableHashMap<Integer, Boolean> immutableHashMap = ImmutableHashMap.fromJavaMap(new HashMap<Integer,
+        HashArrayMapTrie<Integer, Boolean> hashArrayMapTrie = HashArrayMapTrie.fromJavaMap(new HashMap<Integer,
                 Boolean>() {{
             put(0, true);
             put(1, false);
             put(2, true);
         }});
 
-        assertEquals(just(true), immutableHashMap.get(0));
-        assertEquals(just(false), immutableHashMap.get(1));
-        assertEquals(just(true), immutableHashMap.get(2));
-        assertEquals(nothing(), immutableHashMap.get(3));
+        assertEquals(just(true), hashArrayMapTrie.get(0));
+        assertEquals(just(false), hashArrayMapTrie.get(1));
+        assertEquals(just(true), hashArrayMapTrie.get(2));
+        assertEquals(nothing(), hashArrayMapTrie.get(3));
     }
 
     @Test
     public void sizeInfo() {
         assertEquals(known(0), empty().sizeInfo());
-        assertEquals(known(1), ImmutableHashMap.empty().put(1, 1).sizeInfo());
-        ImmutableHashMap<Integer, Boolean> collisionsAndNesting =
-                ImmutableHashMap.<Integer, Boolean>empty(objectEquals(),
+        assertEquals(known(1), HashArrayMapTrie.empty().put(1, 1).sizeInfo());
+        HashArrayMapTrie<Integer, Boolean> collisionsAndNesting =
+                HashArrayMapTrie.<Integer, Boolean>empty(objectEquals(),
                                                          StubbedHashingAlgorithm.<Integer>stubbedHashingAlgorithm()
                                                                  .stub(0, 0b00_00000_00000_00000_00000_00000_00000)
                                                                  .stub(1, 0b00_00000_00000_00000_00000_00001_00000)
@@ -220,7 +220,7 @@ public class ImmutableHashMapTest {
         assertEquals(empty(), empty().tail());
         assertTrue(empty().put("foo", 1).tail().isEmpty());
 
-        ImmutableHashMap<Integer, Boolean> tail = ImmutableHashMap.<Integer, Boolean>empty()
+        HashArrayMapTrie<Integer, Boolean> tail = HashArrayMapTrie.<Integer, Boolean>empty()
                 .put(0, true)
                 .put(32, false)
                 .tail();
@@ -234,44 +234,44 @@ public class ImmutableHashMapTest {
         assertTrue(empty().put(1, 1).sameEntries(empty().put(1, 1)));
         assertTrue(empty().put(1, 1).put(2, 2).remove(2).sameEntries(empty().put(1, 1)));
 
-        assertTrue(ImmutableHashMap.<Integer, Boolean>empty()
+        assertTrue(HashArrayMapTrie.<Integer, Boolean>empty()
                            .put(1, true)
                            .put(2, false)
-                           .sameEntries(ImmutableHashMap.<Integer, Boolean>empty()
+                           .sameEntries(HashArrayMapTrie.<Integer, Boolean>empty()
                                                 .put(1, true)
                                                 .put(2, true),
                                         (v1, v2) -> true));
 
-        assertTrue(ImmutableHashMap.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2, k -> k.hashCode() % 2)
+        assertTrue(HashArrayMapTrie.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2, k -> k.hashCode() % 2)
                            .put(1, true)
                            .put(2, false)
                            .put(3, false)
-                           .put(4, true).sameEntries(ImmutableHashMap.<Integer, Boolean>empty()
+                           .put(4, true).sameEntries(HashArrayMapTrie.<Integer, Boolean>empty()
                                                              .put(3, false)
                                                              .put(4, true)));
 
-        assertTrue(ImmutableHashMap.<Integer, Boolean>empty()
+        assertTrue(HashArrayMapTrie.<Integer, Boolean>empty()
                            .put(3, false)
-                           .put(4, true).sameEntries(ImmutableHashMap.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2,
+                           .put(4, true).sameEntries(HashArrayMapTrie.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2,
                                                                                               k -> k.hashCode() % 2)
                                                              .put(1, true)
                                                              .put(2, false)
                                                              .put(3, false)
                                                              .put(4, true)));
 
-        assertFalse(ImmutableHashMap.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2, k -> k.hashCode() % 2)
+        assertFalse(HashArrayMapTrie.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2, k -> k.hashCode() % 2)
                             .put(4, true)
                             .put(3, false)
                             .put(2, false)
                             .put(1, true)
-                            .sameEntries(ImmutableHashMap.<Integer, Boolean>empty()
+                            .sameEntries(HashArrayMapTrie.<Integer, Boolean>empty()
                                                  .put(3, false)
                                                  .put(4, true)));
 
-        assertFalse(ImmutableHashMap.<Integer, Boolean>empty()
+        assertFalse(HashArrayMapTrie.<Integer, Boolean>empty()
                             .put(3, false)
                             .put(4, true)
-                            .sameEntries(ImmutableHashMap.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2,
+                            .sameEntries(HashArrayMapTrie.<Integer, Boolean>empty((k, k2) -> k % 2 == k2 % 2,
                                                                                   k -> k.hashCode() % 2)
                                                  .put(4, true)
                                                  .put(3, false)
@@ -289,10 +289,10 @@ public class ImmutableHashMapTest {
         assertNotEquals(empty().put(1, 1), empty().put(1, 2));
         assertNotEquals(empty().put(1, 1), empty().put(2, 1));
 
-        assertEquals(ImmutableHashMap.<Integer, Boolean>empty()
+        assertEquals(HashArrayMapTrie.<Integer, Boolean>empty()
                              .put(0, true)
                              .put(32, false),
-                     ImmutableHashMap.<Integer, Boolean>empty()
+                     HashArrayMapTrie.<Integer, Boolean>empty()
                              .put(0, true)
                              .put(32, false)
                              .put(64, true)
@@ -312,9 +312,9 @@ public class ImmutableHashMapTest {
 
     @Test
     public void keys() {
-        assertEquals(ImmutableHashSet.empty(), ImmutableHashMap.empty().keys());
+        assertEquals(ImmutableHashSet.empty(), HashArrayMapTrie.empty().keys());
         assertEquals(ImmutableHashSet.of("foo", "bar", "baz"),
-                     ImmutableHashMap.fromJavaMap(new HashMap<String, Integer>() {{
+                     HashArrayMapTrie.fromJavaMap(new HashMap<String, Integer>() {{
                          put("foo", 1);
                          put("bar", 2);
                          put("baz", 3);
@@ -324,9 +324,9 @@ public class ImmutableHashMapTest {
     @Test(timeout = 1000)
     public void insertionSanityBenchmark() {
         int                                n                = 1_000_000;
-        ImmutableHashMap<Integer, Boolean> immutableHashMap = empty();
+        HashArrayMapTrie<Integer, Boolean> hashArrayMapTrie = empty();
         for (int i = 0; i < n; i++) {
-            immutableHashMap = immutableHashMap.put(i, true);
+            hashArrayMapTrie = hashArrayMapTrie.put(i, true);
         }
     }
 }

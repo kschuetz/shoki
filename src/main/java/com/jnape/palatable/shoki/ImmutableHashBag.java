@@ -6,7 +6,6 @@ import com.jnape.palatable.shoki.api.Bag;
 import com.jnape.palatable.shoki.api.Collection;
 import com.jnape.palatable.shoki.api.EquivalenceRelation;
 import com.jnape.palatable.shoki.api.HashingAlgorithm;
-import com.jnape.palatable.shoki.api.Map;
 import com.jnape.palatable.shoki.api.views.MapView;
 import com.jnape.palatable.shoki.api.views.SetView;
 
@@ -21,11 +20,11 @@ import static com.jnape.palatable.shoki.api.HashingAlgorithm.objectHashCode;
 
 public final class ImmutableHashBag<A> implements Bag<Integer, A>, SetView<Integer, A>, MapView<Integer, A, Integer> {
 
-    private static final ImmutableHashBag<?> DEFAULT_EMPTY = new ImmutableHashBag<>(ImmutableHashMap.empty());
+    private static final ImmutableHashBag<?> DEFAULT_EMPTY = new ImmutableHashBag<>(HashArrayMapTrie.empty());
 
-    private final ImmutableHashMap<A, Integer> table;
+    private final HashArrayMapTrie<A, Integer> table;
 
-    private ImmutableHashBag(ImmutableHashMap<A, Integer> table) {
+    private ImmutableHashBag(HashArrayMapTrie<A, Integer> table) {
         this.table = table;
     }
 
@@ -35,7 +34,7 @@ public final class ImmutableHashBag<A> implements Bag<Integer, A>, SetView<Integ
     }
 
     @Override
-    public ImmutableHashMap<A, Integer> asMap() {
+    public HashArrayMapTrie<A, Integer> asMap() {
         return table;
     }
 
@@ -87,7 +86,7 @@ public final class ImmutableHashBag<A> implements Bag<Integer, A>, SetView<Integ
 
     public static <A> ImmutableHashBag<A> empty(EquivalenceRelation<A> equivalenceRelation,
                                                 HashingAlgorithm<A> hashingAlgorithm) {
-        return new ImmutableHashBag<>(ImmutableHashMap.empty(equivalenceRelation, hashingAlgorithm));
+        return new ImmutableHashBag<>(HashArrayMapTrie.empty(equivalenceRelation, hashingAlgorithm));
     }
 
     @SuppressWarnings("unchecked")
