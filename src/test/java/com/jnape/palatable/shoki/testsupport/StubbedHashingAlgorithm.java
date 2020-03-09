@@ -1,16 +1,16 @@
 package com.jnape.palatable.shoki.testsupport;
 
-import com.jnape.palatable.shoki.HashArrayMapTrie;
+import com.jnape.palatable.shoki.HashArrayMappedTrie;
 import com.jnape.palatable.shoki.api.HashingAlgorithm;
 
 import java.util.Objects;
 
-import static com.jnape.palatable.shoki.HashArrayMapTrie.empty;
+import static com.jnape.palatable.shoki.HashArrayMappedTrie.empty;
 
 public final class StubbedHashingAlgorithm<A> implements HashingAlgorithm<A> {
-    private final HashArrayMapTrie<A, Integer> table;
+    private final HashArrayMappedTrie<A, Integer> table;
 
-    private StubbedHashingAlgorithm(HashArrayMapTrie<A, Integer> table) {
+    private StubbedHashingAlgorithm(HashArrayMappedTrie<A, Integer> table) {
         this.table = table;
     }
 

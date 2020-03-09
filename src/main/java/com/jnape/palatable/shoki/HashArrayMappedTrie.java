@@ -3,9 +3,7 @@ package com.jnape.palatable.shoki;
 import com.jnape.palatable.lambda.adt.Maybe;
 import com.jnape.palatable.lambda.adt.hlist.Tuple2;
 import com.jnape.palatable.lambda.functions.Fn1;
-import com.jnape.palatable.lambda.functions.Fn3;
 import com.jnape.palatable.lambda.functions.builtin.fn1.Head;
-import com.jnape.palatable.lambda.semigroup.Semigroup;
 import com.jnape.palatable.shoki.api.EquivalenceRelation;
 import com.jnape.palatable.shoki.api.HashingAlgorithm;
 import com.jnape.palatable.shoki.api.Map;
@@ -20,6 +18,8 @@ import static com.jnape.palatable.lambda.adt.Maybe.nothing;
 import static com.jnape.palatable.lambda.adt.hlist.HList.tuple;
 import static com.jnape.palatable.lambda.functions.builtin.fn1.Constantly.constantly;
 import static com.jnape.palatable.lambda.functions.builtin.fn1.Flatten.flatten;
+import static com.jnape.palatable.lambda.functions.builtin.fn1.Id.id;
+import static com.jnape.palatable.lambda.functions.builtin.fn1.Size.size;
 import static com.jnape.palatable.lambda.functions.builtin.fn2.Into.into;
 import static com.jnape.palatable.lambda.functions.builtin.fn2.Map.map;
 import static com.jnape.palatable.lambda.functions.builtin.fn3.FoldLeft.foldLeft;
@@ -32,12 +32,11 @@ import static com.jnape.palatable.shoki.internal.Indices.tableIndex;
 import static java.lang.String.format;
 import static java.lang.String.join;
 import static java.util.Arrays.asList;
-import static java.util.Arrays.stream;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.singleton;
 
-public final class HashArrayMapTrie<K, V> implements Map<Integer, K, V> {
+public final class HashArrayMappedTrie<K, V> implements Map<Integer, K, V> {
 
-    private static final HashArrayMapTrie<?, ?> DEFAULT_EMPTY = empty(objectEquals(), objectHashCode());
+    private static final HashArrayMappedTrie<?, ?> DEFAULT_EMPTY = empty(objectEquals(), objectHashCode());
 
     private final EquivalenceRelation<K> keyEquivalenceRelation;
     private final HashingAlgorithm<K>    keyHashingAlgorithm;
@@ -45,8 +44,8 @@ public final class HashArrayMapTrie<K, V> implements Map<Integer, K, V> {
     private final Bitmap32 bitmap;
     private final Object[] table;
 
-    private HashArrayMapTrie(EquivalenceRelation<K> keyEquivalenceRelation, HashingAlgorithm<K> keyHashingAlgorithm,
-                             Bitmap32 bitmap, Object[] table) {
+    private HashArrayMappedTrie(EquivalenceRelation<K> keyEquivalenceRelation, HashingAlgorithm<K> keyHashingAlgorithm,
+                                Bitmap32 bitmap, Object[] table) {
         this.keyEquivalenceRelation = keyEquivalenceRelation;
         this.keyHashingAlgorithm = keyHashingAlgorithm;
         this.bitmap = bitmap;
@@ -54,8 +53,25 @@ public final class HashArrayMapTrie<K, V> implements Map<Integer, K, V> {
     }
 
     @Override
-    public boolean contains(K key) {
-        return get(key).match(constantly(false), constantly(true));
+    public HashArrayMappedTrie<K, V> put(K key, V value) {
+        return putForHashAndLevel(new Entry<>(key, value), bitmap32(keyHashingAlgorithm.apply(key)), 1);
+    }
+
+    @Override
+    public HashArrayMappedTrie<K, V> remove(K key) {
+        return removeForHashLevel(key, bitmap32(keyHashingAlgorithm.apply(key)), 1);
+    }
+
+    @Override
+    public ImmutableHashSet<K> keys() {
+        return foldLeft((keys, kv) -> keys.add(kv._1()), ImmutableHashSet.empty(), this);
+    }
+
+    @Override
+    public HashArrayMappedTrie<K, V> tail() {
+        return head()
+                .fmap(into((headKey, __) -> remove(headKey)))
+                .orElse(this);
     }
 
     @Override
@@ -64,41 +80,8 @@ public final class HashArrayMapTrie<K, V> implements Map<Integer, K, V> {
     }
 
     @Override
-    public HashArrayMapTrie<K, V> put(K key, V value) {
-        return putForHashAndLevel(new Entry<>(key, value), bitmap32(keyHashingAlgorithm.apply(key)), 1);
-    }
-
-    public HashArrayMapTrie<K, V> diff(Map<Integer, K, V> other) {
-        return this;
-    }
-
-    public HashArrayMapTrie<K, V> merge(Map<Integer, K, V> other, Semigroup<V> semigroup) {
-        Integer thisSize  = sizeInfo().getSize();
-        Integer otherSize = other.sizeInfo().getSize();
-
-        Fn3<HashArrayMapTrie<K, V>, Map<Integer, K, V>, Semigroup<V>, HashArrayMapTrie<K, V>> merge =
-                (acc, entries, sg) -> foldLeft(
-                        (m, entry) -> entry.into((k, v) -> m.putOrUpdate(k, v, semigroup)),
-                        acc,
-                        entries);
-
-        return other instanceof HashArrayMapTrie<?, ?> && otherSize > thisSize
-               ? merge.apply((HashArrayMapTrie<K, V>) other, this, semigroup)
-               : merge.apply(this, other, semigroup.flip());
-    }
-
-    public HashArrayMapTrie<K, V> putOrUpdate(K k, V v, Semigroup<V> semigroup) {
-        return put(k, get(k).fmap(semigroup.apply(v)).orElse(v));
-    }
-
-    @Override
-    public HashArrayMapTrie<K, V> remove(K key) {
-        return removeForHashLevel(key, bitmap32(keyHashingAlgorithm.apply(key)), 1);
-    }
-
-    @Override
-    public ImmutableHashSet<K> keys() {
-        return foldLeft((keys, kv) -> keys.add(kv._1()), ImmutableHashSet.empty(), this);
+    public boolean contains(K key) {
+        return get(key).match(constantly(false), constantly(true));
     }
 
     @Override
@@ -112,13 +95,6 @@ public final class HashArrayMapTrie<K, V> implements Map<Integer, K, V> {
     }
 
     @Override
-    public HashArrayMapTrie<K, V> tail() {
-        return head()
-                .fmap(into((headKey, __) -> remove(headKey)))
-                .orElse(this);
-    }
-
-    @Override
     public String toString() {
         return "ImmutableHashMap["
                 + join(", ", map(into((k, v) -> format("(%s=%s)", k, v)), this))
@@ -129,22 +105,15 @@ public final class HashArrayMapTrie<K, V> implements Map<Integer, K, V> {
     public Iterator<Tuple2<K, V>> iterator() {
         Iterable<Iterable<Tuple2<K, V>>> map = map(valueAtSlot -> match(
                 valueAtSlot,
-                entry -> singletonList(tuple(entry.k, entry.v)),
-                subTrie -> subTrie,
+                entry -> singleton(tuple(entry.k, entry.v)),
+                id(),
                 collision -> map(entry -> tuple(entry.k, entry.v), collision.kvPairs)), asList(table));
         return flatten(map).iterator();
     }
 
     @Override
     public SizeInfo.Known<Integer> sizeInfo() {
-        return known(stream(table).reduce(
-                0,
-                (size, obj) -> match(
-                        obj,
-                        entry -> size + 1,
-                        map -> size + map.sizeInfo().getSize(),
-                        collision -> size + collision.size()),
-                Integer::sum));
+        return known(size(this).intValue());
     }
 
     private Maybe<Entry<K, V>> getEntry(K key) {
@@ -155,8 +124,8 @@ public final class HashArrayMapTrie<K, V> implements Map<Integer, K, V> {
     @SuppressWarnings("unchecked")
     public boolean equals(Object other) {
         try {
-            return other instanceof HashArrayMapTrie<?, ?>
-                    && sameEntries((HashArrayMapTrie<K, V>) other);
+            return other instanceof HashArrayMappedTrie<?, ?>
+                    && sameEntries((HashArrayMappedTrie<K, V>) other);
         } catch (ClassCastException cce) {
             return false;
         }
@@ -168,11 +137,11 @@ public final class HashArrayMapTrie<K, V> implements Map<Integer, K, V> {
                         map(into((k, v) -> 31 * keyHashingAlgorithm.apply(k) + Objects.hashCode(v)), this));
     }
 
-    public boolean sameEntries(HashArrayMapTrie<K, V> other) {
+    public boolean sameEntries(HashArrayMappedTrie<K, V> other) {
         return sameEntries(other, objectEquals());
     }
 
-    public boolean sameEntries(HashArrayMapTrie<K, V> other, EquivalenceRelation<V> valueEquivalenceRelation) {
+    public boolean sameEntries(HashArrayMappedTrie<K, V> other, EquivalenceRelation<V> valueEquivalenceRelation) {
         if (!sizeInfo().equals(other.sizeInfo())) {
             return false;
         }
@@ -199,7 +168,7 @@ public final class HashArrayMapTrie<K, V> implements Map<Integer, K, V> {
                : Maybe.nothing();
     }
 
-    private HashArrayMapTrie<K, V> putForHashAndLevel(Entry<K, V> entry, Bitmap32 keyHash, int level) {
+    private HashArrayMappedTrie<K, V> putForHashAndLevel(Entry<K, V> entry, Bitmap32 keyHash, int level) {
         int bitmapIndex = bitmapIndex(keyHash, level);
         int tableIndex  = tableIndex(bitmap, bitmapIndex);
         return bitmap.populatedAtIndex(bitmapIndex)
@@ -215,19 +184,19 @@ public final class HashArrayMapTrie<K, V> implements Map<Integer, K, V> {
                : insertAt(bitmapIndex, entry, tableIndex);
     }
 
-    private HashArrayMapTrie<K, V> propagateBoth(Entry<K, V> existingEntry, Bitmap32 existingKeyHash,
-                                                 Entry<K, V> newEntry, Bitmap32 newKeyHash,
-                                                 int level, int tableIndex) {
+    private HashArrayMappedTrie<K, V> propagateBoth(Entry<K, V> existingEntry, Bitmap32 existingKeyHash,
+                                                    Entry<K, V> newEntry, Bitmap32 newKeyHash,
+                                                    int level, int tableIndex) {
         int nextLevel = level + 1;
         return nextLevel == 8
                ? overrideAt(new Collision<>(existingKeyHash, ImmutableStack.of(existingEntry, newEntry)), tableIndex)
-               : overrideAt(HashArrayMapTrie.<K, V>empty(keyEquivalenceRelation, keyHashingAlgorithm)
+               : overrideAt(HashArrayMappedTrie.<K, V>empty(keyEquivalenceRelation, keyHashingAlgorithm)
                                     .putForHashAndLevel(existingEntry, existingKeyHash, nextLevel)
                                     .putForHashAndLevel(newEntry, newKeyHash, nextLevel),
                             tableIndex);
     }
 
-    private HashArrayMapTrie<K, V> removeForHashLevel(K key, Bitmap32 keyHash, int level) {
+    private HashArrayMappedTrie<K, V> removeForHashLevel(K key, Bitmap32 keyHash, int level) {
         int bitmapIndex = bitmapIndex(keyHash, level);
         if (!bitmap.populatedAtIndex(bitmapIndex))
             return this;
@@ -239,32 +208,32 @@ public final class HashArrayMapTrie<K, V> implements Map<Integer, K, V> {
                      collision -> collision.removeAndUpdate(this, key, keyHash, bitmapIndex, tableIndex));
     }
 
-    private HashArrayMapTrie<K, V> insertAt(int index, Object valueForSlot, int tableIndex) {
-        return new HashArrayMapTrie<>(keyEquivalenceRelation, keyHashingAlgorithm, bitmap.populateAtIndex(index),
-                                      Arrays.insertAt(tableIndex, table, valueForSlot));
+    private HashArrayMappedTrie<K, V> insertAt(int index, Object valueForSlot, int tableIndex) {
+        return new HashArrayMappedTrie<>(keyEquivalenceRelation, keyHashingAlgorithm, bitmap.populateAtIndex(index),
+                                         Arrays.insertAt(tableIndex, table, valueForSlot));
     }
 
-    private HashArrayMapTrie<K, V> overrideAt(Object valueForSlot, int tableIndex) {
-        return new HashArrayMapTrie<>(keyEquivalenceRelation, keyHashingAlgorithm, bitmap,
-                                      Arrays.overrideAt(tableIndex, table, valueForSlot));
+    private HashArrayMappedTrie<K, V> overrideAt(Object valueForSlot, int tableIndex) {
+        return new HashArrayMappedTrie<>(keyEquivalenceRelation, keyHashingAlgorithm, bitmap,
+                                         Arrays.overrideAt(tableIndex, table, valueForSlot));
     }
 
-    private HashArrayMapTrie<K, V> deleteAt(int index, int tableIndex) {
-        return new HashArrayMapTrie<>(keyEquivalenceRelation, keyHashingAlgorithm, bitmap.evictAtIndex(index),
-                                      Arrays.deleteAt(tableIndex, table));
+    private HashArrayMappedTrie<K, V> deleteAt(int index, int tableIndex) {
+        return new HashArrayMappedTrie<>(keyEquivalenceRelation, keyHashingAlgorithm, bitmap.evictAtIndex(index),
+                                         Arrays.deleteAt(tableIndex, table));
     }
 
     private <R> R match(Object valueAtIndex,
                         Fn1<? super Entry<K, V>, ? extends R> entryFn,
-                        Fn1<? super HashArrayMapTrie<K, V>, ? extends R> mapFn,
+                        Fn1<? super HashArrayMappedTrie<K, V>, ? extends R> mapFn,
                         Fn1<? super Collision<K, V>, ? extends R> collisionFn) {
         if (valueAtIndex instanceof Entry<?, ?>) {
             @SuppressWarnings("unchecked")
             Entry<K, V> entry = (Entry<K, V>) valueAtIndex;
             return entryFn.apply(entry);
-        } else if (valueAtIndex instanceof HashArrayMapTrie<?, ?>) {
+        } else if (valueAtIndex instanceof HashArrayMappedTrie<?, ?>) {
             @SuppressWarnings("unchecked")
-            HashArrayMapTrie<K, V> subTrie = (HashArrayMapTrie<K, V>) valueAtIndex;
+            HashArrayMappedTrie<K, V> subTrie = (HashArrayMappedTrie<K, V>) valueAtIndex;
             return mapFn.apply(subTrie);
         } else {
             @SuppressWarnings("unchecked")
@@ -273,20 +242,29 @@ public final class HashArrayMapTrie<K, V> implements Map<Integer, K, V> {
         }
     }
 
-    public static <K, V> HashArrayMapTrie<K, V> empty(EquivalenceRelation<K> equivalenceRelation,
-                                                      HashingAlgorithm<K> hashingAlgorithm) {
-        return new HashArrayMapTrie<>(equivalenceRelation, hashingAlgorithm, Bitmap32.empty(), new Object[0]);
+    public static <K, V> HashArrayMappedTrie<K, V> empty(EquivalenceRelation<K> equivalenceRelation,
+                                                         HashingAlgorithm<K> hashingAlgorithm) {
+        return new HashArrayMappedTrie<>(equivalenceRelation, hashingAlgorithm, Bitmap32.empty(), new Object[0]);
     }
 
     @SuppressWarnings("unchecked")
-    public static <K, V> HashArrayMapTrie<K, V> empty() {
-        return (HashArrayMapTrie<K, V>) DEFAULT_EMPTY;
+    public static <K, V> HashArrayMappedTrie<K, V> empty() {
+        return (HashArrayMappedTrie<K, V>) DEFAULT_EMPTY;
     }
 
-    public static <K, V> HashArrayMapTrie<K, V> fromJavaMap(java.util.Map<K, V> map) {
-        return foldLeft((immutableHashMap, entry) -> immutableHashMap.put(entry.getKey(), entry.getValue()),
-                        empty(),
-                        map.entrySet());
+    @SafeVarargs
+    public static <K, V> HashArrayMappedTrie<K, V> hashArrayMappedTrie(EquivalenceRelation<K> keyEquivalenceRelation,
+                                                                       HashingAlgorithm<K> keyHashingAlgorithm,
+                                                                       Tuple2<K, V> entry, Tuple2<K, V>... entries) {
+        return foldLeft((m, e) -> m.put(e._1(), e._2()),
+                        HashArrayMappedTrie.<K, V>empty(keyEquivalenceRelation, keyHashingAlgorithm)
+                                .put(entry._1(), entry._2()),
+                        asList(entries));
+    }
+
+    @SafeVarargs
+    public static <K, V> HashArrayMappedTrie<K, V> hashArrayMappedTrie(Tuple2<K, V> entry, Tuple2<K, V>... entries) {
+        return hashArrayMappedTrie(objectEquals(), objectHashCode(), entry, entries);
     }
 
     private static final class Entry<K, V> {
@@ -335,15 +313,15 @@ public final class HashArrayMapTrie<K, V> implements Map<Integer, K, V> {
             return kvPairs.sizeInfo().getSize();
         }
 
-        private HashArrayMapTrie<K, V> removeAndUpdate(HashArrayMapTrie<K, V> hashArrayMapTrie, K key,
-                                                       Bitmap32 keyHash, int index, int tableIndex) {
+        private HashArrayMappedTrie<K, V> removeAndUpdate(HashArrayMappedTrie<K, V> hashArrayMappedTrie, K key,
+                                                          Bitmap32 keyHash, int index, int tableIndex) {
             if (size() == 1) {
-                return hashArrayMapTrie.deleteAt(index, tableIndex);
+                return hashArrayMappedTrie.deleteAt(index, tableIndex);
             }
-            Collision<K, V> withoutKey = remove(key, keyHash, hashArrayMapTrie.keyEquivalenceRelation);
+            Collision<K, V> withoutKey = remove(key, keyHash, hashArrayMappedTrie.keyEquivalenceRelation);
             return withoutKey.size() == 1
-                   ? hashArrayMapTrie.overrideAt(withoutKey.kvPairs.iterator().next(), tableIndex)
-                   : hashArrayMapTrie.overrideAt(withoutKey, tableIndex);
+                   ? hashArrayMappedTrie.overrideAt(withoutKey.kvPairs.iterator().next(), tableIndex)
+                   : hashArrayMappedTrie.overrideAt(withoutKey, tableIndex);
         }
     }
 }
