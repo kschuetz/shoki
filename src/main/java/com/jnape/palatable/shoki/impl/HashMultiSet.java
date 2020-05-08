@@ -21,6 +21,7 @@ import static com.jnape.palatable.lambda.functions.builtin.fn3.FoldLeft.foldLeft
 import static com.jnape.palatable.shoki.api.Natural.zero;
 import static com.jnape.palatable.shoki.api.SizeInfo.known;
 import static com.jnape.palatable.shoki.impl.HashMap.hashMap;
+import static com.jnape.palatable.shoki.impl.Memoized.memoized;
 import static java.lang.String.format;
 import static java.lang.String.join;
 
@@ -36,11 +37,11 @@ public final class HashMultiSet<A> implements MultiSet<A> {
     private static final HashMultiSet<?> EMPTY_OBJECT_DEFAULTS = new HashMultiSet<>(hashMap());
 
     private final HashMap<A, NonZero> multiplicityMap;
-
-    private volatile Natural size;
+    private final Memoized<Natural>   size;
 
     private HashMultiSet(HashMap<A, NonZero> multiplicityMap) {
         this.multiplicityMap = multiplicityMap;
+        size                 = memoized(() -> foldLeft(Natural::plus, (Natural) zero(), multiplicityMap.values()));
     }
 
     /**
@@ -135,16 +136,7 @@ public final class HashMultiSet<A> implements MultiSet<A> {
      */
     @Override
     public Known<Natural> sizeInfo() {
-        Natural size = this.size;
-        if (size == null) {
-            synchronized (this) {
-                size = this.size;
-                if (size == null) {
-                    this.size = size = foldLeft(Natural::plus, (Natural) zero(), multiplicityMap.values());
-                }
-            }
-        }
-        return known(size);
+        return known(size.getOrCompute());
     }
 
     /**

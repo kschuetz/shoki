@@ -17,6 +17,7 @@ import static com.jnape.palatable.shoki.api.EquivalenceRelation.objectEquals;
 import static com.jnape.palatable.shoki.api.Natural.zero;
 import static com.jnape.palatable.shoki.api.OrderedCollection.EquivalenceRelations.sameElementsSameOrder;
 import static com.jnape.palatable.shoki.api.SizeInfo.known;
+import static com.jnape.palatable.shoki.impl.Memoized.memoized;
 import static com.jnape.palatable.shoki.impl.StrictStack.strictStack;
 import static java.util.Collections.emptyIterator;
 
@@ -196,15 +197,16 @@ public abstract class StrictQueue<A> implements Queue<Natural, A>, Stack<Natural
     }
 
     private static final class NonEmpty<A> extends StrictQueue<A> {
-        private final StrictStack<A> outgoing;
-        private final StrictStack<A> incoming;
-
-        private volatile Natural size;
-        private volatile Integer hashCode;
+        private final StrictStack<A>    outgoing;
+        private final StrictStack<A>    incoming;
+        private final Memoized<Natural> size;
+        private final Memoized<Integer> hashCode;
 
         private NonEmpty(StrictStack<A> outgoing, StrictStack<A> incoming) {
             this.outgoing = outgoing;
             this.incoming = incoming;
+            size          = memoized(() -> outgoing.sizeInfo().getSize().plus(incoming.sizeInfo().getSize()));
+            hashCode      = memoized(() -> 31 * outgoing.hashCode() + incoming.hashCode());
         }
 
         @Override
@@ -242,16 +244,7 @@ public abstract class StrictQueue<A> implements Queue<Natural, A>, Stack<Natural
 
         @Override
         public Known<Natural> sizeInfo() {
-            Natural size = this.size;
-            if (size == null) {
-                synchronized (this) {
-                    size = this.size;
-                    if (size == null) {
-                        this.size = size = outgoing.sizeInfo().getSize().plus(incoming.sizeInfo().getSize());
-                    }
-                }
-            }
-            return known(size);
+            return known(size.getOrCompute());
         }
 
         @Override
@@ -261,16 +254,7 @@ public abstract class StrictQueue<A> implements Queue<Natural, A>, Stack<Natural
 
         @Override
         public int hashCode() {
-            Integer hashCode = this.hashCode;
-            if (hashCode == null) {
-                synchronized (this) {
-                    hashCode = this.hashCode;
-                    if (hashCode == null) {
-                        this.hashCode = hashCode = 31 * outgoing.hashCode() + incoming.hashCode();
-                    }
-                }
-            }
-            return hashCode;
+            return hashCode.getOrCompute();
         }
 
         @Override

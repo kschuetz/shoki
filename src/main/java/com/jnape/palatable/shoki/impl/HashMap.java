@@ -31,6 +31,7 @@ import static com.jnape.palatable.shoki.api.Natural.zero;
 import static com.jnape.palatable.shoki.api.SizeInfo.known;
 import static com.jnape.palatable.shoki.impl.HAMT.Node.rootNode;
 import static com.jnape.palatable.shoki.impl.HashSet.hashSet;
+import static com.jnape.palatable.shoki.impl.Memoized.memoized;
 import static com.jnape.palatable.shoki.impl.StrictQueue.strictQueue;
 import static java.lang.String.format;
 import static java.lang.String.join;
@@ -120,14 +121,17 @@ public final class HashMap<K, V> implements Map<Natural, K, V> {
     private final EquivalenceRelation<K> keyEqRel;
     private final HashingAlgorithm<K>    keyHashAlg;
     private final HAMT<K, V>             hamt;
-
-    private volatile Natural size;
-    private volatile Integer hashCode;
+    private final Memoized<Natural>      size;
+    private final Memoized<Integer>      hashCode;
 
     private HashMap(EquivalenceRelation<K> keyEqRel, HashingAlgorithm<K> keyHashAlg, HAMT<K, V> hamt) {
         this.keyEqRel   = keyEqRel;
         this.keyHashAlg = keyHashAlg;
         this.hamt       = hamt;
+        size            = memoized(foldLeft((Natural s, Tuple2<K, V> __) -> s.inc(), zero()).thunk(this));
+        hashCode        = memoized(() -> foldLeft(Integer::sum, 0,
+                                                  map(into((k, v) -> 31 * keyHashAlg.apply(k) + Objects.hashCode(v)),
+                                                      this)));
     }
 
     /**
@@ -254,18 +258,8 @@ public final class HashMap<K, V> implements Map<Natural, K, V> {
      * Amortized <code>O(1)</code>.
      */
     @Override
-    @SuppressWarnings("DuplicatedCode")
     public Known<Natural> sizeInfo() {
-        Natural size = this.size;
-        if (size == null) {
-            synchronized (this) {
-                size = this.size;
-                if (size == null) {
-                    this.size = size = foldLeft((s, __) -> s.inc(), (Natural) zero(), this);
-                }
-            }
-        }
-        return known(size);
+        return known(size.getOrCompute());
     }
 
     /**
@@ -301,18 +295,7 @@ public final class HashMap<K, V> implements Map<Natural, K, V> {
      */
     @Override
     public int hashCode() {
-        Integer hashCode = this.hashCode;
-        if (hashCode == null) {
-            synchronized (this) {
-                hashCode = this.hashCode;
-                if (hashCode == null) {
-                    this.hashCode = hashCode =
-                            foldLeft(Integer::sum, 0,
-                                     map(into((k, v) -> 31 * keyHashAlg.apply(k) + Objects.hashCode(v)), this));
-                }
-            }
-        }
-        return hashCode;
+        return hashCode.getOrCompute();
     }
 
     /**
