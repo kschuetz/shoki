@@ -1,8 +1,8 @@
 Shōki (正気)
 ======
 [![Build Status](https://travis-ci.org/palatable/shoki.svg)](https://travis-ci.org/palatable/shoki)
-[![Shōki](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Foss.sonatype.org%2Fcontent%2Frepositories%2Fsnapshots%2Fcom%2Fjnape%2Fpalatable%2Fshoki%2Fmaven-metadata.xml)](https://oss.sonatype.org/content/repositories/snapshots/com/jnape/palatable/shoki/)
-<!--[![Shōki](https://img.shields.io/maven-central/v/com.jnape.palatable/shoki.svg)](http://search.maven.org/#search%7Cga%7C1%7Ccom.jnape.palatable.shoki)-->
+[![Shōki](https://img.shields.io/maven-central/v/com.jnape.palatable/shoki.svg)](http://search.maven.org/#search%7Cga%7C1%7Ccom.jnape.palatable.shoki)
+[![Shōki](https://img.shields.io/maven-metadata/v?color=aaa&label=development&metadataUrl=https%3A%2F%2Foss.sonatype.org%2Fcontent%2Frepositories%2Fsnapshots%2Fcom%2Fjnape%2Fpalatable%2Fshoki%2Fmaven-metadata.xml)](https://oss.sonatype.org/content/repositories/snapshots/com/jnape/palatable/shoki/)
 
 Purely functional, persistent data structures for the JVM.
 
@@ -48,8 +48,9 @@ identical type signatures, trying to remember whether `peek` or `poll` throws or
 <a name="installation">Installation</a>
 ------------
 
-_Shōki_ is not yet released, but you can download its snapshots for alpha testing (make sure to have a Maven central
-`repository` entry that enables `snapshots`).
+_Shōki_ alpha releases are currently available in Maven Central. These alpha releases are meant to be of high enough
+quality as to be reliable in a production environment, while still allowing significant API changes to occur before a
+`1.0` release. 
 
 Add the following dependency to your:
 
@@ -59,14 +60,14 @@ Add the following dependency to your:
 <dependency>
     <groupId>com.jnape.palatable</groupId>
     <artifactId>shoki</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0-alpha-1</version>
 </dependency>
 ```
 
 `build.gradle` ([Gradle](https://docs.gradle.org/current/userguide/dependency_management.html)):
 
 ```gradle
-compile group: 'com.jnape.palatable', name: 'shoki', version: '1.0-SNAPSHOT'
+compile group: 'com.jnape.palatable', name: 'shoki', version: '1.0-alpha-1'
 ```
 
 <a name="hierarchy">Hierarchy</a>

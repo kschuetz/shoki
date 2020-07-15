@@ -5,7 +5,9 @@ import com.jnape.palatable.lambda.adt.hlist.Tuple2;
 import com.jnape.palatable.lambda.semigroup.Semigroup;
 
 import static com.jnape.palatable.lambda.functions.Fn2.curried;
+import static com.jnape.palatable.lambda.functions.builtin.fn1.Constantly.constantly;
 import static com.jnape.palatable.lambda.functions.builtin.fn2.Into.into;
+import static com.jnape.palatable.lambda.functions.builtin.fn2.Map.map;
 import static com.jnape.palatable.lambda.functions.builtin.fn3.FoldLeft.foldLeft;
 import static com.jnape.palatable.lambda.monoid.builtin.And.and;
 import static com.jnape.palatable.shoki.api.EquivalenceRelation.equivalent;
@@ -57,6 +59,34 @@ public interface Map<Size extends Number, K, V> extends
 
     /**
      * {@inheritDoc}
+     * If <code>key</code> is associated to a value inside this {@link Map}, retrieve {@link Maybe#just(Object) just}
+     * the value it maps to; otherwise, return {@link Maybe#nothing() nothing}.
+     *
+     * @see Map#put(Object, Object)
+     * @see Map#remove(Object)
+     */
+    @Override
+    Maybe<V> get(K k);
+
+    /**
+     * {@inheritDoc}
+     * <code>True</code> if <code>key</code> is associated to a value in this {@link Map}; <code>false</code> otherwise.
+     */
+    @Override
+    default boolean contains(K k) {
+        return get(k).match(constantly(false), constantly(true));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    default boolean isEmpty() {
+        return Collection.super.isEmpty();
+    }
+
+    /**
+     * {@inheritDoc}
      *
      * @return the head key/value {@link Tuple2 pair}
      */
@@ -105,7 +135,7 @@ public interface Map<Size extends Number, K, V> extends
 
         /**
          * An {@link EquivalenceRelation} between two {@link Map}s that holds if, and only if, both {@link Map}s have
-         * equivalent {@link SizeInfo}s and contain the same entries. <code>O(n)</code>.
+         * equivalent {@link SizeInfo}s and contain the same entries.
          *
          * @param valueEqRel the {@link EquivalenceRelation} to use to compare entry values
          * @param <K>        the key type
@@ -113,9 +143,9 @@ public interface Map<Size extends Number, K, V> extends
          * @param <M>        the {@link Map} subtype of the arguments
          * @return the {@link EquivalenceRelation}
          */
-        public static <K, V, M extends Map<?, K, V>> EquivalenceRelation<M> sameEntries(
-                EquivalenceRelation<V> valueEqRel) {
-            return Sizable.EquivalenceRelations.<M>sameSizes()
+        public static <K, V, M extends Map<?, K, V>> EquivalenceRelation<M> entries(
+                EquivalenceRelation<? super V> valueEqRel) {
+            return Sizable.EquivalenceRelations.<M>sizeInfos()
                     .and((m1, m2) -> and()
                             .foldMap(into((k, v) -> m2.get(k).fmap(valueEqRel.apply(v)).orElse(false)), m1));
         }
@@ -130,10 +160,36 @@ public interface Map<Size extends Number, K, V> extends
          * @param <M>         the {@link Map} subtype of the arguments
          * @return the {@link EquivalenceRelation}
          */
-        public static <K, V, M extends Map<?, K, V>> EquivalenceRelation<M> sameKeys(
+        public static <K, V, M extends Map<?, K, V>> EquivalenceRelation<M> keys(
                 EquivalenceRelation<? super Set<?, K>> keySetEqRel) {
-            return Sizable.EquivalenceRelations.<M>sameSizes()
-                    .and((m1, m2) -> equivalent(m1.keys(), m2.keys(), keySetEqRel));
+            return Sizable.EquivalenceRelations.<M>sizeInfos()
+                    .and((m1, m2) -> equivalent(keySetEqRel, m1.keys(), m2.keys()));
+        }
+    }
+
+    /**
+     * Common {@link HashingAlgorithm}s for {@link Map}s.
+     */
+    final class HashingAlgorithms {
+        private HashingAlgorithms() {
+        }
+
+        /**
+         * A {@link HashingAlgorithm} derived from the key/value pairs contained in any order in a given {@link Map}.
+         *
+         * @param keyHashingAlgorithm   the key {@link HashingAlgorithm}
+         * @param valueHashingAlgorithm the value {@link HashingAlgorithm}
+         * @param <K>                   the key type
+         * @param <V>                   the value type
+         * @param <M>                   the  {@link Map} subtype of the argument
+         * @return the {@link HashingAlgorithm}
+         */
+        public static <K, V, M extends Map<?, K, V>> HashingAlgorithm<M> entries(
+                HashingAlgorithm<? super K> keyHashingAlgorithm,
+                HashingAlgorithm<? super V> valueHashingAlgorithm) {
+            return m -> foldLeft(Integer::sum, 0,
+                                 map(into((K k, V v) -> keyHashingAlgorithm.apply(k)
+                                         ^ valueHashingAlgorithm.apply(v)), m));
         }
     }
 }

@@ -25,13 +25,14 @@ import static com.jnape.palatable.lambda.functions.builtin.fn2.Map.map;
 import static com.jnape.palatable.lambda.functions.builtin.fn3.FoldLeft.foldLeft;
 import static com.jnape.palatable.shoki.api.EquivalenceRelation.equivalent;
 import static com.jnape.palatable.shoki.api.EquivalenceRelation.objectEquals;
+import static com.jnape.palatable.shoki.api.HashingAlgorithm.hash;
 import static com.jnape.palatable.shoki.api.HashingAlgorithm.objectHashCode;
-import static com.jnape.palatable.shoki.api.Map.EquivalenceRelations.sameEntries;
+import static com.jnape.palatable.shoki.api.Map.EquivalenceRelations.entries;
+import static com.jnape.palatable.shoki.api.Map.HashingAlgorithms.entries;
 import static com.jnape.palatable.shoki.api.Natural.zero;
 import static com.jnape.palatable.shoki.api.SizeInfo.known;
 import static com.jnape.palatable.shoki.impl.HAMT.Node.rootNode;
 import static com.jnape.palatable.shoki.impl.HashSet.hashSet;
-import static com.jnape.palatable.shoki.impl.Memoized.memoized;
 import static com.jnape.palatable.shoki.impl.StrictQueue.strictQueue;
 import static java.lang.String.format;
 import static java.lang.String.join;
@@ -118,20 +119,17 @@ public final class HashMap<K, V> implements Map<Natural, K, V> {
     private static final HashMap<?, ?> EMPTY_OBJECT_DEFAULTS =
             new HashMap<>(objectEquals(), objectHashCode(), rootNode());
 
-    private final EquivalenceRelation<K> keyEqRel;
-    private final HashingAlgorithm<K>    keyHashAlg;
-    private final HAMT<K, V>             hamt;
-    private final Memoized<Natural>      size;
-    private final Memoized<Integer>      hashCode;
+    private final EquivalenceRelation<? super K> keyEqRel;
+    private final HashingAlgorithm<? super K>    keyHashAlg;
+    private final HAMT<K, V>                     hamt;
 
-    private HashMap(EquivalenceRelation<K> keyEqRel, HashingAlgorithm<K> keyHashAlg, HAMT<K, V> hamt) {
+    private volatile Natural size;
+    private volatile Integer hashCode;
+
+    private HashMap(EquivalenceRelation<? super K> keyEqRel, HashingAlgorithm<? super K> keyHashAlg, HAMT<K, V> hamt) {
         this.keyEqRel   = keyEqRel;
         this.keyHashAlg = keyHashAlg;
         this.hamt       = hamt;
-        size            = memoized(foldLeft((Natural s, Tuple2<K, V> __) -> s.inc(), zero()).thunk(this));
-        hashCode        = memoized(() -> foldLeft(Integer::sum, 0,
-                                                  map(into((k, v) -> 31 * keyHashAlg.apply(k) + Objects.hashCode(v)),
-                                                      this)));
     }
 
     /**
@@ -237,7 +235,7 @@ public final class HashMap<K, V> implements Map<Natural, K, V> {
 
     /**
      * {@inheritDoc}
-     * Amortized <code>O(o)</code>.
+     * <code>O(o)</code>.
      */
     @Override
     public HashMap<K, V> merge(Map<Natural, K, V> other, Semigroup<V> semigroup) {
@@ -246,7 +244,7 @@ public final class HashMap<K, V> implements Map<Natural, K, V> {
 
     /**
      * {@inheritDoc}
-     * Amortized <code>O(o)</code>.
+     * <code>O(o)</code>.
      */
     @Override
     public HashMap<K, V> removeAll(Set<Natural, K> keys) {
@@ -258,8 +256,18 @@ public final class HashMap<K, V> implements Map<Natural, K, V> {
      * Amortized <code>O(1)</code>.
      */
     @Override
+    @SuppressWarnings("DuplicatedCode")
     public Known<Natural> sizeInfo() {
-        return known(size.getOrCompute());
+        Natural size = this.size;
+        if (size == null) {
+            synchronized (this) {
+                size = this.size;
+                if (size == null) {
+                    this.size = size = foldLeft((s, __) -> s.inc(), (Natural) zero(), this);
+                }
+            }
+        }
+        return known(size);
     }
 
     /**
@@ -272,17 +280,17 @@ public final class HashMap<K, V> implements Map<Natural, K, V> {
 
     /**
      * Determine if <code>other</code> is a {@link HashMap} with the
-     * {@link Map.EquivalenceRelations#sameEntries(EquivalenceRelation) same entries} as this {@link HashMap}, using
+     * {@link Map.EquivalenceRelations#entries(EquivalenceRelation) same entries} as this {@link HashMap}, using
      * {@link Object#equals(Object) Object equality} to determine value equivalence. <code>O(n)</code>.
      *
      * @param other the {@link Object} to check for equality
      * @return the equality outcome
-     * @see Map.EquivalenceRelations#sameEntries(EquivalenceRelation)
+     * @see Map.EquivalenceRelations#entries(EquivalenceRelation)
      */
     @Override
     public boolean equals(Object other) {
         return other instanceof HashMap<?, ?> &&
-                trying(() -> equivalent(this, downcast(other), sameEntries(objectEquals())))
+                trying(() -> equivalent(entries(objectEquals()), this, downcast(other)))
                         .catching(ClassCastException.class, constantly(false))
                         .orThrow();
     }
@@ -295,7 +303,16 @@ public final class HashMap<K, V> implements Map<Natural, K, V> {
      */
     @Override
     public int hashCode() {
-        return hashCode.getOrCompute();
+        Integer hashCode = this.hashCode;
+        if (hashCode == null) {
+            synchronized (this) {
+                hashCode = this.hashCode;
+                if (hashCode == null) {
+                    this.hashCode = hashCode = hash(entries(keyHashAlg, objectHashCode()), this);
+                }
+            }
+        }
+        return hashCode;
     }
 
     /**
@@ -319,8 +336,8 @@ public final class HashMap<K, V> implements Map<Natural, K, V> {
      * @return the {@link HashMap}
      */
     @SafeVarargs
-    public static <K, V> HashMap<K, V> hashMap(EquivalenceRelation<K> keyEquivalenceRelation,
-                                               HashingAlgorithm<K> keyHashingAlgorithm,
+    public static <K, V> HashMap<K, V> hashMap(EquivalenceRelation<? super K> keyEquivalenceRelation,
+                                               HashingAlgorithm<? super K> keyHashingAlgorithm,
                                                Tuple2<K, V>... entries) {
         return hashMap(new HashMap<>(keyEquivalenceRelation, keyHashingAlgorithm, rootNode()), entries);
     }

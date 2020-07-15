@@ -2,7 +2,6 @@ package com.jnape.palatable.shoki.impl;
 
 import com.jnape.palatable.lambda.adt.Maybe;
 import com.jnape.palatable.shoki.api.Collection;
-import com.jnape.palatable.shoki.api.HashingAlgorithm;
 import com.jnape.palatable.shoki.api.Natural;
 import com.jnape.palatable.shoki.api.SizeInfo;
 import com.jnape.palatable.shoki.api.SizeInfo.Known;
@@ -17,11 +16,12 @@ import static com.jnape.palatable.lambda.functions.builtin.fn1.Downcast.downcast
 import static com.jnape.palatable.lambda.functions.builtin.fn3.FoldLeft.foldLeft;
 import static com.jnape.palatable.shoki.api.EquivalenceRelation.equivalent;
 import static com.jnape.palatable.shoki.api.EquivalenceRelation.objectEquals;
+import static com.jnape.palatable.shoki.api.HashingAlgorithm.hash;
+import static com.jnape.palatable.shoki.api.HashingAlgorithm.objectHashCode;
 import static com.jnape.palatable.shoki.api.Natural.zero;
-import static com.jnape.palatable.shoki.api.OrderedCollection.EquivalenceRelations.sameElementsSameOrder;
+import static com.jnape.palatable.shoki.api.OrderedCollection.EquivalenceRelations.elementsInOrder;
 import static com.jnape.palatable.shoki.api.OrderedCollection.HashingAlgorithms.elementsInOrder;
 import static com.jnape.palatable.shoki.api.SizeInfo.known;
-import static com.jnape.palatable.shoki.impl.Memoized.memoized;
 
 /**
  * A strictly-evaluated {@link Stack}.
@@ -106,7 +106,7 @@ public abstract class StrictStack<A> implements Stack<Natural, A> {
     @Override
     public final boolean equals(Object other) {
         return other instanceof StrictStack<?> &&
-                equivalent(this, downcast(other), sameElementsSameOrder(objectEquals()));
+                equivalent(elementsInOrder(objectEquals()), this, downcast(other));
     }
 
     /**
@@ -183,16 +183,15 @@ public abstract class StrictStack<A> implements Stack<Natural, A> {
     }
 
     private static final class Head<A> extends StrictStack<A> {
-        private final A                 head;
-        private final StrictStack<A>    tail;
-        private final Memoized<Natural> size;
-        private final Memoized<Integer> hashCode;
+        private final A              head;
+        private final StrictStack<A> tail;
+
+        private volatile Natural size;
+        private volatile Integer hashCode;
 
         private Head(A head, StrictStack<A> tail) {
             this.head = head;
             this.tail = tail;
-            size      = memoized(foldLeft((Natural s, A __) -> s.inc(), zero()).thunk(this));
-            hashCode  = memoized(elementsInOrder(HashingAlgorithm.<A>objectHashCode()).thunk(this));
         }
 
         @Override
@@ -211,13 +210,32 @@ public abstract class StrictStack<A> implements Stack<Natural, A> {
         }
 
         @Override
+        @SuppressWarnings("DuplicatedCode")
         public Known<Natural> sizeInfo() {
-            return known(size.getOrCompute());
+            Natural size = this.size;
+            if (size == null) {
+                synchronized (this) {
+                    size = this.size;
+                    if (size == null) {
+                        this.size = size = foldLeft((s, __) -> s.inc(), (Natural) zero(), this);
+                    }
+                }
+            }
+            return known(size);
         }
 
         @Override
         public int hashCode() {
-            return hashCode.getOrCompute();
+            Integer hashCode = this.hashCode;
+            if (hashCode == null) {
+                synchronized (this) {
+                    hashCode = this.hashCode;
+                    if (hashCode == null) {
+                        this.hashCode = hashCode = hash(elementsInOrder(objectHashCode()), this);
+                    }
+                }
+            }
+            return hashCode;
         }
     }
 

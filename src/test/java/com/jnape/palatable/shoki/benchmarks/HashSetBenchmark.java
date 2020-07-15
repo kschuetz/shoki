@@ -81,7 +81,6 @@ public class HashSetBenchmark {
         public static void main(String[] args) throws RunnerException {
             HashSet.main(args);
             LinkedHashSet.main(args);
-            TreeSet.main(args);
         }
 
         @BenchmarkMode(Throughput)
@@ -125,28 +124,6 @@ public class HashSetBenchmark {
 
             public static void main(String[] args) throws RunnerException {
                 runBenchmarks(HashSetBenchmark.Java.LinkedHashSet.class);
-            }
-        }
-
-        @BenchmarkMode(Throughput)
-        @OutputTimeUnit(MICROSECONDS)
-        @Warmup(iterations = 5, time = 1)
-        @Measurement(iterations = 5, time = 1)
-        @Fork(5)
-        @OperationsPerInvocation(K100)
-        public static class TreeSet {
-
-            @Benchmark
-            public java.util.TreeSet<Integer> add() {
-                java.util.TreeSet<Integer> treeSet = new java.util.TreeSet<>();
-                for (int i = 0; i < K100; i++) {
-                    treeSet.add(i);
-                }
-                return treeSet;
-            }
-
-            public static void main(String[] args) throws RunnerException {
-                runBenchmarks(HashSetBenchmark.Java.TreeSet.class);
             }
         }
     }
